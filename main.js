@@ -18,7 +18,7 @@
     //prototipo de la clase board para los metodos
     self.Board.prototype = {
         get elements() {
-            var elements = this.bars.map(function(bar) {return bar; }); //pasamos el arreglo como capia en vez de referencia
+            var elements = this.bars.map(function (bar) { return bar; }); //pasamos el arreglo como capia en vez de referencia
             elements.push(this.ball); //agrega la pelota al juego usandose en el constructor de la pelota
             return elements; //retorna las barras y la pelota
         }
@@ -28,27 +28,51 @@
 //para la creacion de la pelota
 (function () {
     //constructor pelota
-    self.Ball = function (x,y,radio,board){
-        this.x=x;
-        this.y=y;
-        this.radio=radio;
-        this.board= board;
-        this.speedY=0;
-        this.speedX=3;
+    self.Ball = function (x, y, radio, board) {
+        this.x = x;
+        this.y = y;
+        this.radio = radio;
+        this.board = board;
+        this.speedY = 0;
+        this.speedX = 3;
         this.direction = 1;
+        this.bounce_angle = 0;
+        this.max_bounce_angle = Math.PI / 12;
+        this.speed = 3;
 
         board.ball = this;
         this.kind = "circle"
 
-        
+
     }
 
     //prototipo de la pelota
     self.Ball.prototype = {
-        move: function (){
+        move: function () {
             this.x += (this.speedX * this.direction); //1 a la derecha -1 a la izquierda
             this.y += (this.speedY);
+        },
+        get width(){
+            return this.radio*2;
+        },
+        get height(){
+            return this.radio*2;
+        },
+        collision: function (bar) {
+            //reacciona a la colision con una barra que recibe como parámetro
+            var relative_intersect_y =(bar.y + (bar.height / 2)) - this.y;
+
+            var normalized_intersect_y = relative_intersect_y / (bar.height / 2);
+
+            this.bounce_angle = normalized_intersect_y * this.max_bounce_angle;
+            console.log(this.bounce_angle);
+            this.speedY = this.speed * (-Math.sin(this.bounce_angle));
+            this.speedX = this.speed * Math.cos(this.bounce_angle);
+
+            if (this.x > (this.board.width / 2)) this.direction = -1;
+            else this.direction = 1;
         }
+
     }
 })();
 
@@ -69,7 +93,7 @@
         this.kind = "rectangle"; //tipo de la figura de las barras para que el canvas sepa dibujarlo
 
         //valocidad de las barras
-        this.speed = 10;        
+        this.speed = 10;
     }
 
     //prototipo de la clase Bar
@@ -79,12 +103,12 @@
             this.y += this.speed;
         },
         up: function () {
-            this.y -= this.speed 
+            this.y -= this.speed
         },
 
         //para ver por consola si las coordendas si se mueven al presionar una tecla 
         toString: function () {
-            return "x: " +this.x + " y: " + this.y;
+            return "x: " + this.x + " y: " + this.y;
         }
     }
 })();
@@ -105,7 +129,7 @@
     self.BoardView.prototype = {
         //para limpiar la pantalla con el nuevo frame de barras
         clean: function () {
-            this.context.clearRect(0,0,this.board.width,this.board.height); //coordenadas 0,0, y limpiar hasta las dimensiones del board
+            this.context.clearRect(0, 0, this.board.width, this.board.height); //coordenadas 0,0, y limpiar hasta las dimensiones del board
         },
         draw: function () {
             //elements es el getter del Board que devuelve las barras y la pelota
@@ -115,32 +139,70 @@
             }
         },
 
-        
+        checkCollisions: function () {
+            
+            for (var i = this.board.bars.length - 1; i >= 0; i--) {
+                var bar = this.board.bars[i]
+                if (hit(bar, this.board.ball)) {
+                    this.board.ball.collision(bar);
+                }
+            };
+        },
         play: function () {
-            if(this.board.playing) {
+            if (this.board.playing) {
                 this.clean();
                 this.draw();
+                this.checkCollisions();
                 this.board.ball.move();
             }
-            
+
         }
     }
 
     //---------------helper methods
     //dibujará los elementos
     function draw(context, element) {
-        
+
         switch (element.kind) {
             case "rectangle":
                 context.fillRect(element.x, element.y, element.width, element.height);
                 break;
-            case "circle": 
+            case "circle":
                 context.beginPath();
-                context.arc(element.x, element.y, element.radio,0,7);
+                context.arc(element.x, element.y, element.radio, 0, 7);
                 context.fill();
                 context.closePath();
                 break;
-        }  
+        }
+    }
+
+    //revisa las colisiones
+    function hit(a, b) {
+        
+        //revisa si a colisiona con b
+        var hit = false;
+        //colisiones horizontales
+        if (b.x + b.width >= a.x && b.x < a.x + a.width) {
+            //colisiones verticales
+            if (b.y + b.height >= a.y && b.y < a.y + a.height) {
+                hit = true;
+            }
+        }
+
+        //colision de a con b
+        if (b.x <= a.x && b.x + b.width >= a.x + a.width) {
+            if (b.y <= a.y && b.y + b.height >= a.y + a.height) {
+                hit = true;
+            }
+        }
+
+        //colision de b con a
+        if (a.x <= b.x && a.x + a.width >= b.x + b.width) {
+            if (a.y <= b.y && a.y + a.height >= b.y + b.height)
+                hit = true;
+        }
+        return hit;
+
     }
 })();
 
@@ -150,33 +212,33 @@ var bar = new Bar(20, 100, 40, 100, board);
 var bar2 = new Bar(700, 100, 40, 100, board);
 var canvas = document.getElementById('canvas');
 var boardView = new BoardView(canvas, board);
-var ball = new Ball(300,100,10,board)
+var ball = new Ball(300, 100, 10, board)
 
 
 
 //evento que escucha las teclas del teclado usando directamente el DOM
-document.addEventListener("keydown", function(ev){
-    
-    if(ev.keyCode == 38){
+document.addEventListener("keydown", function (ev) {
+
+    if (ev.keyCode == 38) {
         ev.preventDefault(); //lo pasamos para adentro para tener control de las letras que queremos tener contorl, No todo el teclado
         bar.up();
-    } else if(ev.keyCode === 40){
+    } else if (ev.keyCode === 40) {
         ev.preventDefault();
         bar.down();
-    }else if(ev.keyCode === 87){
+    } else if (ev.keyCode === 87) {
         //w
         ev.preventDefault();
         bar2.up();
-    }else if(ev.keyCode === 83){
+    } else if (ev.keyCode === 83) {
         //s
         ev.preventDefault();
         bar2.down();
-    }else if (ev.keyCode === 32){ // para la barra espaciadora
+    } else if (ev.keyCode === 32) { // para la barra espaciadora
         ev.preventDefault();
         board.playing = !board.playing; //para pausar el juego
     }
 
-    console.log(bar2.toString())
+    //console.log(bar2.toString())
 });
 
 boardView.draw();//para dibujar por primara vez 
@@ -185,8 +247,8 @@ boardView.draw();//para dibujar por primara vez
 window.requestAnimationFrame(controller);
 
 //ejecuta todos los elementos
-function controller() {  
-    
+function controller() {
+
     boardView.play();
 
     //animacion de las barras de las barras y se refresque constantemente actualizando los frames
