@@ -40,16 +40,24 @@
         this.board.bars.push(this);
 
         this.kind = "rectangle"; //tipo de la figura de las barras para que el canvas sepa dibujarlo
+
+        //valocidad de las barras
+        this.speed = 10;
     }
 
     //prototipo de la clase Bar
     self.Bar.prototype = {
         //movimiento de las barras
         down: function () {
-
+            this.y += this.speed;
         },
         up: function () {
+            this.y -= this.speed 
+        },
 
+        //para ver por consola si las coordendas si se mueven al presionar una tecla 
+        toString: function () {
+            return "x: " +this.x + " y: " + this.y;
         }
     }
 })();
@@ -92,14 +100,28 @@
     }
 })();
 
+//para tener acceso a las barras de manera global y no solo desde el main para aplicarles funciones, las sacamos del main
+var board = new Board(800, 400);
+var bar = new Bar(20, 100, 40, 100, board);
+var bar = new Bar(700, 100, 40, 100, board);
+var canvas = document.getElementById('canvas');
+var boardView = new BoardView(canvas, board);
+
+//evento que escucha las teclas del teclado usando directamente el DOM
+document.addEventListener("keydown", function(ev){
+    if(ev.keyCode == 38){
+        bar.up();
+    } else if(ev.keyCode == 40){
+        bar.down();
+    }
+
+    console.log(bar.toString())
+});
+
 self.addEventListener("load", main);
 
 //ejecuta todos los elementos
 function main() {
-    var board = new Board(800, 400);
-    var bar = new Bar(20, 100, 40, 100, board);
-    var bar = new Bar(700, 100, 40, 100, board);
-    var canvas = document.getElementById('canvas');
-    var boardView = new BoardView(canvas, board);
+    
     boardView.draw();
 }
