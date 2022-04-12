@@ -18,7 +18,7 @@
     //prototipo de la clase board para los metodos
     self.Board.prototype = {
         get elements() {
-            var elements = this.bars;
+            var elements = this.bars.map(function(bar) {return bar; }); //pasamos el arreglo como capia en vez de referencia
             elements.push(this.ball); //agrega la pelota al juego usandose en el constructor de la pelota
             return elements; //retorna las barras y la pelota
         }
@@ -35,9 +35,20 @@
         this.board= board;
         this.speedY=0;
         this.speedX=3;
+        this.direction = 1;
 
         board.ball = this;
         this.kind = "circle"
+
+        
+    }
+
+    //prototipo de la pelota
+    self.Ball.prototype = {
+        move: function (){
+            this.x += (this.speedX * this.direction); //1 a la derecha -1 a la izquierda
+            this.y += (this.speedY);
+        }
     }
 })();
 
@@ -58,7 +69,7 @@
         this.kind = "rectangle"; //tipo de la figura de las barras para que el canvas sepa dibujarlo
 
         //valocidad de las barras
-        this.speed = 10;
+        this.speed = 10;        
     }
 
     //prototipo de la clase Bar
@@ -103,9 +114,15 @@
                 draw(this.context, el);
             }
         },
+
+        
         play: function () {
-            this.clean();
-            this.draw();
+            if(this.board.playing) {
+                this.clean();
+                this.draw();
+                this.board.ball.move();
+            }
+            
         }
     }
 
@@ -139,25 +156,30 @@ var ball = new Ball(300,100,10,board)
 
 //evento que escucha las teclas del teclado usando directamente el DOM
 document.addEventListener("keydown", function(ev){
-    ev.preventDefault();
+    
     if(ev.keyCode == 38){
-        
+        ev.preventDefault(); //lo pasamos para adentro para tener control de las letras que queremos tener contorl, No todo el teclado
         bar.up();
-    } else if(ev.keyCode == 40){
-        
+    } else if(ev.keyCode === 40){
+        ev.preventDefault();
         bar.down();
-    }else if(ev.keyCode == 87){
+    }else if(ev.keyCode === 87){
         //w
-        
+        ev.preventDefault();
         bar2.up();
-    }else if(ev.keyCode == 83){
+    }else if(ev.keyCode === 83){
         //s
-        
+        ev.preventDefault();
         bar2.down();
+    }else if (ev.keyCode === 32){ // para la barra espaciadora
+        ev.preventDefault();
+        board.playing = !board.playing; //para pausar el juego
     }
 
     console.log(bar2.toString())
 });
+
+boardView.draw();//para dibujar por primara vez 
 
 //self.addEventListener("load", main);
 window.requestAnimationFrame(controller);
